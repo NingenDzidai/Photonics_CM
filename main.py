@@ -118,21 +118,24 @@ def wiener_filtration(distorted, blur, wiener_const):
     return restored
 
 
-def tikhonov_reg(distorted, distortion, noise, lambd, alfa, step): # takes spectres as input
+def tikhonov_reg(distorted, distortion, noise, blur, lambd, alfa, step): # takes spectres as input
     distorted_spec = np.fft.fft2(distorted)
     distortion_spec = np.fft.fft2(distortion)
-    noise_spec = matrix_spectre(np.fft.fft2(noise), distorted)
+    noise_spec = np.fft.fft2(noise)
     laplas = [[0,-1,0], [-1,4,-1], [0,-1,0]]
     laplas_spectre = matrix_spectre(np.fft.fft2(laplas), distorted)
     restored_spec = (distortion_spec/(distortion_spec**2 + lambd * laplas_spectre**2))*distorted_spec
-    while (norm(restored_spec) <= norm(noise_spec) - alfa) or (norm(restored_spec) >= norm(noise_spec) + alfa):
-        if norm(restored_spec) <= norm(noise_spec) - alfa:
+    restored = np.fft.ifft(restored_spec)
+    r = distorted - distort_image(restored, blur, noise)
+    while (norm(r) <= norm(noise_spec) - alfa) or (norm(r) >= norm(noise_spec) + alfa):
+        if norm(r) <= norm(noise_spec) - alfa:
             lambd += step
-        elif norm(restored_spec) >= norm(noise_spec) + alfa:
+        elif norm(r) >= norm(noise_spec) + alfa:
             lambd -= step
 
         restored_spec = (distortion_spec/(distortion_spec**2 + lambd * laplas_spectre**2))*distorted_spec
         restored = np.fft.ifft2(restored_spec)
+        r = distorted - distort_image(restored, blur, noise)
     return restored
 
 
